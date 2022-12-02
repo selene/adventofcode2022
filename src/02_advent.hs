@@ -1,45 +1,48 @@
 import qualified Data.Map.Strict as Map
 
-data Shape = Rock | Paper | Scissors
-    deriving (Eq, Ord, Show, Read, Bounded, Enum)
-data Outcome = Win | Lose | Draw
-    (Eq, Ord, Show, Read, Bounded, Enum)
+inputToShape :: Char -> String
+inputToShape 'A' = "Rock"
+inputToShape 'B' = "Paper"
+inputToShape 'C' = "Scissors"
+inputToShape 'X' = "Rock"
+inputToShape 'Y' = "Paper"
+inputToShape 'Z' = "Scissors"
+inputToShape x = "ERROR!!"
 
-inputsToShapes :: Char -> Shape
-inputsToShapes 'A' = Rock
-inputsToShapes 'B' = Paper
-inputsToShapes 'C' = Scissors
-inputsToShapes 'X' = Rock
-inputsToShapes 'Y' = Paper
-inputsToShapes 'Z' = Scissors
+shapeToScore :: String -> Int
+shapeToScore "Rock" = 1
+shapeToScore "Paper" = 2
+shapeToScore "Scissors" = 3
+shapeToScore x = 0
 
-shapesToScores :: Shape -> Int
-shapesToScores Rock = 1
-shapesToScores Paper = 2
-shapesToScores Scissors = 3
+outcomeToScore :: String -> Int
+outcomeToScore "win" = 6
+outcomeToScore "draw" = 3
+outcomeToScore "lose" = 0
+outcomeToScore x = 0
 
-outcomesToScores :: Outcome -> Int
-outcomesToScores Win = 6
-outcomesToScores Draw = 3
-outcomesToScores Lose = 0
+shapeToWinner :: String -> String
+shapeToWinner "Rock" = "Paper"
+shapeToWinner "Paper" = "Scissors"
+shapeToWinner "Scissors" = "Rock"
 
-shapeToWinner :: Shape -> Shape
-shapeToWinner Rock = Paper
-shapeToWinner Paper = Scissors
-shapeToWinner Scissors = Rock
+shapeToLoser :: String -> String
+shapeToLoser "Rock" = "Scissors"
+shapeToLoser "Paper" = "Rock"
+shapeToLoser "Scissors" = "Paper"
 
 
-playToShapes :: (Char, Char) -> (Shape, Shape)
-playToShapes (them, you) = (inputsToShapes them, inputsToShapes you)
+playToShapes :: (Char, Char) -> (String, String)
+playToShapes (them, you) = (inputToShape them, inputToShape you)
 
-shapesToOutcome :: (Shape, Shape) -> Outcome
+shapesToOutcome :: (String, String) -> String
 shapesToOutcome (them, you) 
-    | you == (shapeToWinner them) = Win
-    | you == them = Draw
-    | otherwise = Lose
+    | you == (shapeToWinner them) = "win"
+    | you == them = "draw"
+    | otherwise = "lose"
 
 playToScore :: (Char, Char) -> Int
-playToScore (themRaw, youRaw) = (outcomesToScores outcome) + (shapesToScores you)
+playToScore (themRaw, youRaw) = (outcomeToScore outcome) + (shapeToScore you)
     where (them, you) = playToShapes (themRaw, youRaw)
           outcome = shapesToOutcome (them, you)
 
@@ -52,16 +55,23 @@ testInput = [('A', 'Y')
 
 
 
-inputsToOutcomes :: Char -> String
-inputsToOutcomes 'X' = "lose"
-inputsToOutcomes 'Y' = "draw"
-inputsToOutcomes 'Z' = "win"
+inputToOutcome :: Char -> String
+inputToOutcome 'X' = "lose"
+inputToOutcome 'Y' = "draw"
+inputToOutcome 'Z' = "win"
 
--- playToShapeOutcome :: (Char, Char) -> (String, String)
--- playToShapeOutcome (them, you) = (inputsToShapes them, inputsToOutcomes you)
+playToShapeOutcome :: (Char, Char) -> (String, String)
+playToShapeOutcome (them, you) = (inputToShape them, inputToOutcome you)
 
--- outcomeToShape :: (String, String) -> String
--- outcomeToShape (them, outcome)
---     | outcome == "win" = shapeToWinner them
---     | outcome == "draw" = them
---     | outcome == "lose" = them
+outcomeToShape :: (String, String) -> String
+outcomeToShape (them, outcome)
+    | outcome == "win" = shapeToWinner them
+    | outcome == "draw" = them
+    | outcome == "lose" = shapeToLoser them
+
+playToScore2 :: (Char, Char) -> Int
+playToScore2 (themRaw, youRaw) = (outcomeToScore outcome) + (shapeToScore you)
+    where (them, outcome) = playToShapeOutcome (themRaw, youRaw)
+          you = outcomeToShape (them, outcome)
+
+solve02 input = sum (map playToScore2 input)
