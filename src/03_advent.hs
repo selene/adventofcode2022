@@ -33,6 +33,21 @@ rucksackDuplicatePriority rucksack = itemPriority (findDuplicate (rucksackToComp
 solve01 :: String -> Int
 solve01 input = sum (map rucksackDuplicatePriority (lines input))
 
-main = do
+solve01FromFile = do
   input <- readFile "03input.txt"
   putStrLn $ show (solve01 input)
+
+
+listByThrees :: [a] -> [(a, a, a)]
+listByThrees [] = []
+listByThrees (x:y:z:xs) = [(x, y, z)] ++ listByThrees xs
+
+findBadge :: (String, String, String) -> Char
+findBadge (x, y, z) = head (Set.toList (Set.intersection (Set.intersection (Set.fromList x) (Set.fromList y)) (Set.fromList z)))
+
+solve02 :: String -> Int
+solve02 input = sum (map (itemPriority . findBadge) (listByThrees (lines input)))
+
+solve02FromFile = do
+  input <- readFile "03input.txt"
+  putStrLn $ show (solve02 input)
