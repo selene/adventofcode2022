@@ -1,5 +1,9 @@
 import qualified Data.Map.Strict as Map
 
+data Shape = Rock | Paper | Scissors deriving (Show, Eq, Ord, Enum)
+data Outcome = Lose | Draw | Win deriving (Show, Eq, Ord, Enum)
+
+
 inputToShape :: Char -> String
 inputToShape 'A' = "Rock"
 inputToShape 'B' = "Paper"
