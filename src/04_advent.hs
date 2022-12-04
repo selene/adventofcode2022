@@ -31,18 +31,35 @@ stringToPair str = (Pair (sections !! 0) (sections !! 1))
     sections = map stringPairToSection sectionList
 
 
-overlaps :: Pair -> Bool
-overlaps (Pair (Section oneStart oneEnd) (Section twoStart twoEnd))
+fullyOverlaps :: Pair -> Bool
+fullyOverlaps (Pair (Section oneStart oneEnd) (Section twoStart twoEnd))
   | (oneStart <= twoStart) && (oneEnd >= twoEnd) = True
   | (twoStart <= oneStart) && (twoEnd >= oneEnd) = True
   | otherwise = False
 
-numPairsWithOverlap :: [Pair] -> Int
-numPairsWithOverlap pairs = length (filter overlaps pairs)
+numPairsWithFullOverlap :: [Pair] -> Int
+numPairsWithFullOverlap pairs = length (filter fullyOverlaps pairs)
 
 solve01 :: String -> Int
-solve01 input = numPairsWithOverlap (map stringToPair (lines input))
+solve01 input = numPairsWithFullOverlap (map stringToPair (lines input))
 
 solve01FromFile = do
   input <- readFile "04input.txt"
   putStrLn $ show (solve01 input)
+
+overlaps :: Pair -> Bool
+overlaps (Pair (Section oneStart oneEnd) (Section twoStart twoEnd))
+  | (oneStart <= twoStart) && (twoStart <= oneEnd) = True
+  | (twoStart <= oneStart) && (oneStart <= twoEnd) = True
+  | otherwise = False
+
+
+numPairsWithOverlap :: [Pair] -> Int
+numPairsWithOverlap pairs = length (filter overlaps pairs)
+
+solve02 :: String -> Int
+solve02 input = numPairsWithOverlap (map stringToPair (lines input))
+
+solve02FromFile = do
+  input <- readFile "04input.txt"
+  putStrLn $ show (solve02 input)
