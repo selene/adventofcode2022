@@ -86,3 +86,47 @@ solve01FromFile = do
   crateString <- readFile "05input_crates.txt"
   moveString <- readFile "05input_moves.txt"
   putStrLn $ show (solve01 (crateString, moveString))
+
+
+-- ---------- PART 02 ------------
+
+
+removeCrates :: ([[Char]], Int, Int) -> ([[Char]], [Char])
+removeCrates (stacks, num, from) = (([
+  if i == from
+    then drop num (stacks !! i)
+    else stacks !! i
+  | i <- [0..((length stacks)-1)]
+  ]), removed)
+  where removed = take num (stacks !! from)
+
+
+addCrates :: ([[Char]], [Char], Int) -> ([[Char]])
+addCrates (stacks, crates, to) = (([
+  if i == to
+    then crates ++ (stacks !! i)
+    else stacks !! i
+  | i <- [0..((length stacks)-1)]
+  ]))
+
+doMove2 :: ([[Char]], Move) -> ([[Char]])
+doMove2 (stacks, (Move count from to)) = addCrates (afterRemove, removed, to)
+  where (afterRemove, removed) = removeCrates (stacks, count, from)
+
+moveCrates2 :: ([[Char]], [Move]) -> [[Char]]
+moveCrates2 (stacks, []) = stacks
+moveCrates2 (stacks, (move:rest)) = moveCrates2 ((doMove2 (stacks, move)), rest)
+
+solveMoveCrates2 :: ([[Char]], [Move]) -> [Char]
+solveMoveCrates2 (crates, moves) = map head stacks
+  where stacks = moveCrates2 (crates, moves)
+
+solve02 :: (String, String) -> String
+solve02 (crateString, moveString) = solveMoveCrates2 (crates, moves)
+  where crates = lines crateString
+        moves = map moveFromString (lines moveString)
+
+solve02FromFile = do
+  crateString <- readFile "05input_crates.txt"
+  moveString <- readFile "05input_moves.txt"
+  putStrLn $ show (solve02 (crateString, moveString))
