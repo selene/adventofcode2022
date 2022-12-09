@@ -18,16 +18,40 @@ type Parser = Parsec Void Text.Text
 -- :set -XOverloadedStrings
 -- parseTest ParserNameHere "string input"
 
-
-
-
 -- Problem data types
 
+-- Parse types
 data CDTarget = Root | Up | String deriving (Show, Eq)
 data Operation = CD CDTarget | LS deriving (Show, Eq)
+data FileEntry = FileEntry String Integer deriving (Show, Eq)
+data DirEntry = DirEntry String
+
+-- Implement types
 data File = File String Integer deriving (Show, Eq, Ord)
 data Dir = Dir String  (Maybe Dir) [Dir] [File] deriving (Show, Eq, Ord)
 -- data FSEntry = File String Integer | Dir String [FSEntry] deriving (Show, Eq)
+
+
+
+-- Parse to AST
+
+cdTargetP = rootP <|> upP <|> dirStringP
+rootP = Root <$ "/"
+upP = Up <$ ".."
+dirStringP = some (alphaNumChar)
+
+opCdP :: Parser (Operation)
+opCdP = do
+  string "cd "
+
+  return $ Operation CD
+
+operationParser :: Parser (Operation)
+operationParser = do
+  string "$ "
+
+
+
 
 getFileSize :: File -> Integer
 getFileSize (File _ size) = size
