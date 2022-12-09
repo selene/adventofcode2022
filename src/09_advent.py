@@ -128,7 +128,76 @@ def part1(use_input=False):
     
     return len(tail_visited)
     
+
+
+def print_status(segments):
+    print(f"segments, {segments}")
+    
+    max_r = max([seg.row for seg in segments] + [0])
+    min_r = min([seg.row for seg in segments] + [0])
+    height = max_r - min_r + 1
+
+    max_c = max([seg.col for seg in segments] + [0])
+    min_c = min([seg.col for seg in segments] + [0])
+    width = max_c - min_c + 1
+    
+    rope_map = []
+    for r in range(height):
+        rope_map.append(['.'] * width)
+    
+    print(f'Initialized rope map, {rope_map}')
+
+
+    rope_map[0-min_r][0-min_c] = 's'
+    for idx in range(len(segments) - 1, 0, -1):
+        seg = segments[idx]
+        rope_map[seg.row - min_r][seg.col - min_c] = 'H' if idx == 0 else str(idx)
+    
+    for row in rope_map:
+        print(' '.join(row))
+        
+            
+
+    
+def part2(use_input=False, value=None):
+    moves = initialize(use_input, value)
+    print('\n'.join([str(m) for m in moves]))
+    
+    segments = [Pos(0, 0)] * 10
+    HEAD = 0
+    TAIL = 9
+    
+    tail_visited = {segments[TAIL]: True}
+    
+    print("====================================")
+    print_status(segments)
     
     
-def part2(use_input=False):
-    pass
+    for move in moves:
+        #print("\n====================================")
+        #print(f"Moving r{move.row_delta}, c{move.col_delta}")
+        head_pos = segments[HEAD]
+        
+        leader_pos = Pos(head_pos.row + move.row_delta, head_pos.col + move.col_delta)
+        segments[HEAD] = leader_pos
+        #print(f'new leader pos {leader_pos}')
+        for idx in range(1, len(segments)):
+            segment = segments[idx]
+            next_seg_pos = step(leader_pos, segment)
+            
+            #print(f'segment {idx}, was at {segment}, moved to {next_seg_pos}')
+            
+            segments[idx] = next_seg_pos
+            leader_pos = next_seg_pos
+        
+        tail_visited[segments[TAIL]] = True
+        
+
+        #print_status(segments)
+    
+    print(tail_visited)
+    
+    return len(tail_visited)
+        
+        
+        
