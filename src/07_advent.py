@@ -23,6 +23,11 @@ DIR_UP = '..'
 LIST_DIR_PREFIX = 'dir'
 
 
+DISK_SIZE = 70000000
+FREE_SPACE_NEEDED = 30000000
+
+
+
 class Directory():
     def __init__(self, name, parent, subdirs=None, files=None):
         self.name = name          # String
@@ -133,8 +138,8 @@ def sizes_by_dir(directory):
         
         sizes.update(sub_size_map)
         curr_size += sub_size
-    for f in directory.files:
-        curr_size += f.size
+    
+    curr_size += sum([f.size for f in directory.files])
     
     sizes[directory.full_path()] = curr_size
     
@@ -159,11 +164,21 @@ def part1(use_input=False, value=None):
     sum_small = sum([size for size in sizes.values() if size <= 100000])
     print(f'sum_small {sum_small}')
     return sum_small
-    
-    
-    
 
     
 def part2(use_input=False, value=None):
-    operations = initialize(use_input, value)
+    console_lines = initialize(use_input, value)
+    
+    
+    # Build Filesystem from commands
+    root = build_filesystem(console_lines)
+    
+    total, sizes = sizes_by_dir(root)
+    
+    free_space = DISK_SIZE - total
+    needed_space = FREE_SPACE_NEEDED - free_space
+    
+    smallest_needed = min([size for size in sizes.values() if size >= needed_space])
+    print(f'smallest_needed {smallest_needed}')
+    return smallest_needed
     
