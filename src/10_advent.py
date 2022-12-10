@@ -15,8 +15,8 @@ DEBUG = False
 
 class Operation:
     NOOP = 'noop'
-    ADDX = 'addx'
-    ADDX_HOLD = 'addx_hold'
+    ADDX = 'addx' # Only in the input
+    ADDX_START = 'addx_start'
     ADDX_FINISH = 'addx_finish'
     
     
@@ -49,15 +49,11 @@ def parse_lines(lines):
             operations.append(Operation(Operation.NOOP, None))
         elif line[0] == Operation.ADDX:
             operations.extend([
-                Operation(Operation.ADDX_HOLD, int(line[1])),
+                Operation(Operation.ADDX_START, int(line[1])),
                 Operation(Operation.ADDX_FINISH, int(line[1])),
             ])
     return operations
 
-
-def step(head_pos, tail_pos):
-    pass
-    
 
 def should_record_strength(cycle_num):
     return cycle_num % 40 == 20 and cycle_num <= 220
@@ -65,6 +61,7 @@ def should_record_strength(cycle_num):
 
 def signal_strength(register, cycle_num):
     return register * cycle_num
+
 
 def part1(use_input=False, value=None):
     operations = parse_lines(initialize(use_input, value))
@@ -74,7 +71,7 @@ def part1(use_input=False, value=None):
     total_strength = 0
     for op in operations:
         # Start of cycle
-        #print(f"Starting cycle {cycles}")
+
         if should_record_strength(cycles):
             strength = signal_strength(cycles, register)
             total_strength += strength
@@ -82,29 +79,42 @@ def part1(use_input=False, value=None):
         
         cycles+= 1
         
-        #print(f"  Operation {op.name}")
-        if op.name == Operation.NOOP or op.name == Operation.ADDX_HOLD:
+        # Not necessary, here for reference
+        if op.name == Operation.NOOP or op.name == Operation.ADDX_START:
             continue
         
+        # End of cycle
         if op.name == Operation.ADDX_FINISH:
             register += op.value
-        
-        #print(f"  Register at end of cycle = {register}")
-            
-        
-        # End of cycle
     
     print(total_strength)
     return total_strength
 
-    
-
 
     
 def part2(use_input=False, value=None):
-    moves = initialize(use_input, value)
-
+    operations = parse_lines(initialize(use_input, value))
+    
+    register = 1
+    cycles = 1
+    beam_pos = 0
+    width = 40
+    for op in operations:
+        cycles+= 1
         
+        # Draw
+        if beam_pos in [register-1, register, register+1]:
+            print('█', end='')
+        else:
+            print('·', end='')
+
+        # End of cycle        
+        if op.name == Operation.ADDX_FINISH:
+            register += op.value
+
+        beam_pos = (beam_pos + 1) % width
+        if beam_pos == 0:
+            print()
         
 other_sample = """addx 15
 addx -11
