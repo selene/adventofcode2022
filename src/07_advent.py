@@ -30,6 +30,23 @@ class Directory():
         
         self.subdirs = subdirs or {}
         self.files = files or []
+        
+        self._full_path = None
+    
+    def full_path(self):
+        if self._full_path:
+            return self._full_path
+        
+        path_parts = [self.name]
+        curr = self.parent
+        while curr:
+            path_parts.append(curr.name)
+            curr = curr.parent
+        
+        path_parts.reverse()
+        self._full_path = '/'.join(path_parts)
+        return self._full_path
+        
 
 class File():
     def __init__(self, name, size):
@@ -81,15 +98,10 @@ def print_dir(directory, level=0):
     for f in directory.files:
         print(f'{indent}  - {f.name} (size={f.size})')
     
-
-
-def part1(use_input=False, value=None):
-    console_lines = initialize(use_input, value)
-    
-    root = Directory('/', None)
+def build_filesystem(console_lines):
+    root = Directory('', None)
     curr_dir = root
     
-    # Build Filesystem from commands
     for line in console_lines:
         if line[0] == COMMAND_PREFIX:
             if line[1] == COMMAND_CHANGE_DIR:
@@ -109,7 +121,47 @@ def part1(use_input=False, value=None):
             else:
                 curr_dir.files.append(File(line[1], int(line[0])))
     
+    return root
+
+
+def sizes_by_dir(directory):
+    sizes = {}
+    
+    curr_size = 0
+    for subdir in directory.subdirs.values():
+        sub_size, sub_size_map = sizes_by_dir(subdir)
+        
+        sizes.update(sub_size_map)
+        curr_size += sub_size
+    for f in directory.files:
+        curr_size += f.size
+    
+    sizes[directory.full_path()] = curr_size
+    
+    return curr_size, sizes
+
+
+def part1(use_input=False, value=None):
+    console_lines = initialize(use_input, value)
+    
+    
+    # Build Filesystem from commands
+    root = build_filesystem(console_lines)
+    
     print_dir(root)
+    
+    total, sizes = sizes_by_dir(root)
+    
+    print(f'Total = {total}')
+    for k, v in sizes.items():
+        print(f'{k} - {v}')
+    
+    sum_small = sum([size for size in sizes.values() if size <= 100000])
+    print(f'sum_small {sum_small}')
+    return sum_small
+    
+    
+    
 
     
 def part2(use_input=False, value=None):
