@@ -43,8 +43,14 @@ class Monkey():
         self.items = [math.floor(item / 3.0) for item in self.items]
         return self.items
     
+    def relax2(self, divisor):
+        self.items = [
+            item % divisor
+            for item in self.items
+        ]
+    
     def get_throw_target(self, item):
-        if self.test(item):
+        if item % self.test == 0:
             return self.true_target
         else:
             return self.false_target
@@ -52,13 +58,12 @@ class Monkey():
     def throw_items(self):
         for item in self.items:
             target = self.get_throw_target(item)
-            print(f'     Throwing {item} to monkey {target.id}')
+            #print(f'     Throwing {item} to monkey {target.id}')
             target.catch(item)
-            print(f'       Monkey#{target.id} items now = {target.items}')
+            #print(f'       Monkey#{target.id} items now = {target.items}')
         
         self.items.clear()
-            
-    
+
     def catch(self, item):
         self.items.append(item)
         
@@ -121,10 +126,6 @@ def create_operation(operation, value):
     raise Exception(f'Halp unknown operation {operation}')
 
 
-def create_test(operand):
-    return lambda x: x % operand == 0
-
-
 def parse_lines(lines):
     monkeys = []
     current_monkey = None
@@ -152,7 +153,7 @@ def parse_lines(lines):
         
         test = parse('Test: divisible by {num:d}', line)
         if test:
-            current_monkey.test = create_test(test['num'])
+            current_monkey.test = test['num']
             
             print(f'Monkey[{current_monkey.id}].test = {current_monkey.test}')
             continue
@@ -180,7 +181,7 @@ def parse_lines(lines):
 
 def calculate_monkey_business(monkeys):
     inspections = sorted([m.inspections for m in monkeys], reverse=True)
-    
+    print(f'final sorted inspections: {inspections}')
     return inspections[0] * inspections[1]
     
 
@@ -208,5 +209,26 @@ def part1(use_input=False, value=None):
     
 def part2(use_input=False, value=None):
     monkeys = parse_lines(initialize(use_input, value))
+    print('\n'.join([str(m) for m in monkeys]))
+    
+    divisor = math.prod([m.test for m in monkeys])
+    
+    rounds = 10000
+    for i in range(rounds):
+        if i == 1 or i == 20 or i == 21 or i % 1000 == 0:
+            print(f'round {i}')
+            print(f'inspections: {[m.inspections for m in monkeys]}')
+        #print(f'\n~~~ Round {i} ~~~')
+        for m in monkeys:
+            #print(f'  ** Monkey {m.id}')
+            #print(f'     items = {m.items}')
+            m.inspect()
+            m.relax2(divisor)
+            #print(f'     after inspection = {m.items}')
+            m.throw_items()
+            
+    monkey_business = calculate_monkey_business(monkeys)
+    print(monkey_business)
+    return monkey_business
     
 
