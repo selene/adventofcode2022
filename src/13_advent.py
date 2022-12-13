@@ -76,68 +76,6 @@ def is_list(val):
 def in_right_order(val1, val2, verbose=False, depth=0):
     indent = '  ' * depth
     if verbose:
-        print(f'\n{indent}Comparing pair:')
-        print(f'{indent}* {val1}')
-        print(f'{indent}* {val2}')
-    val1_is_list = is_list(val1)
-    val2_is_list = is_list(val2)
-    
-    if val1_is_list and val2_is_list:
-        if verbose: print(indent + 'Both lists')
-        val1_len = len(val1)
-        val2_len = len(val2)
-        
-        for i in range(min(val1_len, val2_len)):
-            if verbose: print(f'{indent}  Testing index {i}')
-            curr_in_order = in_right_order(val1[i], val2[i], verbose, depth+1)
-            if verbose: print(f'{indent}  --Result: {curr_in_order}')
-            if curr_in_order is not None:
-                return curr_in_order
-        if verbose: print(f'{indent}  Lengths: {val1_len}, {val2_len}')
-        if val1_len < val2_len:
-            return True
-        elif val1_len > val2_len:
-            return False
-        return None
-    elif (not val1_is_list) and (not val2_is_list):
-        if verbose: print(f'{indent}  both integers')
-        if val1 < val2:
-            return True
-        if val1 > val2:
-            return False
-        return None    # Need to check next element
-    else:
-        if val1_is_list:
-            if verbose: print(f'{indent}  Wrapping in list val2={val2}')
-            return in_right_order(val1, [val2], verbose, depth+1)
-        else:
-            if verbose: print(f'{indent}  Wrapping in list val1={val1}')
-            return in_right_order([val1], val2, verbose, depth+1)
-    
-    return None
-
-
-
-
-
-def part1(use_input=False, value=None):
-    pairs = lines_to_pairs(initialize(use_input, value))
-    
-    right_sum = 0
-    for i, pair in enumerate(pairs):
-        is_in_order = in_right_order(pair[0], pair[1], True)
-        if is_in_order:
-            print(f'Pair {i+1} is in the right order')
-            right_sum += i+1
-    
-    print(f'Right sum {right_sum}')
-    return right_sum
-    
-
-
-def in_right_order_cmp(val1, val2, verbose=False, depth=0):
-    indent = '  ' * depth
-    if verbose:
         print(f'\n{indent}Comparing pair cmp style:')
         print(f'{indent}* {val1}')
         print(f'{indent}* {val2}')
@@ -151,7 +89,7 @@ def in_right_order_cmp(val1, val2, verbose=False, depth=0):
         
         for i in range(min(val1_len, val2_len)):
             if verbose: print(f'{indent}  Testing index {i}')
-            curr_in_order = in_right_order_cmp(val1[i], val2[i], verbose, depth+1)
+            curr_in_order = in_right_order(val1[i], val2[i], verbose, depth+1)
             if verbose: print(f'{indent}  --Result: {curr_in_order}')
             if curr_in_order != 0:
                 return curr_in_order
@@ -167,27 +105,35 @@ def in_right_order_cmp(val1, val2, verbose=False, depth=0):
     else:
         if val1_is_list:
             if verbose: print(f'{indent}  Wrapping in list val2={val2}')
-            return in_right_order_cmp(val1, [val2], verbose, depth+1)
+            return in_right_order(val1, [val2], verbose, depth+1)
         else:
             if verbose: print(f'{indent}  Wrapping in list val1={val1}')
-            return in_right_order_cmp([val1], val2, verbose, depth+1)
+            return in_right_order([val1], val2, verbose, depth+1)
     
     return 0
+
+
+def part1(use_input=False, value=None):
+    pairs = lines_to_pairs(initialize(use_input, value))
+    
+    right_sum = 0
+    for i, pair in enumerate(pairs):
+        is_in_order = in_right_order(pair[0], pair[1])
+        if is_in_order > 0:
+            print(f'Pair {i+1} is in the right order')
+            right_sum += i+1
+    
+    print(f'Right sum {right_sum}')
+    return right_sum
+    
+
+
 
 def part2(use_input=False, value=None):
     lines = initialize(use_input, value)
     packets = [DIVIDER_1, DIVIDER_2] + [eval(line) for line in lines if line]
     
-    print('Pre-sorting:')
-    for p in packets:
-        print(p)
-    
-    packets.sort(key=functools.cmp_to_key(in_right_order_cmp))
-    
-    
-    print('Post-sorting:')
-    for p in packets:
-        print(p)
+    packets.sort(key=functools.cmp_to_key(in_right_order))
     
     div1_idx = packets.index(DIVIDER_1) + 1
     div2_idx = packets.index(DIVIDER_2) + 1
