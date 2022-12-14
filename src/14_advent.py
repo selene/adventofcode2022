@@ -14,10 +14,11 @@ import time
 DEBUG = False
 
 class Tile:
-    AIR = '.'
+    AIR = ' '
     ROCK = '█'
     SAND = 'A'
     SOURCE = '+'
+    FLOOR = '═'
 
 
 Pos = namedtuple('Pos', ['row', 'col'])
@@ -184,5 +185,19 @@ def part1(use_input=False, value=None):
     
 
 def part2(use_input=False, value=None):
-    hill_map, _, end_coords = lines_to_map(initialize(use_input, value))
+    cave, rock_bounds = lines_to_map(initialize(use_input, value))
+    
+    cave[rock_bounds.max.row+2] = defaultdict(lambda: Tile.FLOOR)
+    bounds = Range(rock_bounds.min, Pos(rock_bounds.max.row+2, rock_bounds.max.col))
+    
+    new_sand_count = 0
+    new_sand = fall_sand(cave, bounds)
+    while new_sand != SAND_SOURCE_POS:
+        cave[new_sand.row][new_sand.col] = Tile.SAND
+        new_sand_count += 1
+        
+        new_sand = fall_sand(cave, bounds)
+    
+    print_map(cave, bounds)
+    return new_sand_count + 1
     
