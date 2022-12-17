@@ -6,6 +6,7 @@ Created on Thu Dec 02 22:16:35 2021
 """
 
 from collections import defaultdict, namedtuple
+import copy
 from enum import IntEnum
 import math
 import re
@@ -14,10 +15,14 @@ import time
 
 DEBUG = False
 
+CAVE_WIDTH = 7
+
 class Tile:
-    AIR = ' '
+    AIR = '.'
     ROCK = '█'
-    BOUNDS = '═'
+    FLOOR = '═'
+    WALL = '|'
+    FALLING_ROCK = '#'
 
 
 class Pos:
@@ -28,6 +33,11 @@ class Pos:
 
     def __add__(self, other):
         return Pos(self.row + other.row, self.col + other.col)
+    
+    def __iadd__(self, other):
+        self.row += other.row
+        self.col += other.col
+        return self
     
     def __eq_(self, other):
         return self.row == other.row and self.col == other.col
@@ -54,7 +64,12 @@ class RockType(IntEnum):
     I = 3
     SQUARE = 4
 
-Rock = namedtuple('Rock', ['tiles'])
+#Rock = namedtuple('Rock', ['type', 'tiles'])
+class Rock:
+    def __init__(self, rock_type, tiles):
+        self.type = rock_type
+        self.tiles = tiles
+    
 ROCK_ORDER = [RockType.MINUS, RockType.PLUS, RockType.L, RockType.I, RockType.SQUARE]
 ROCK_TEMPLATES = {
     RockType.MINUS: [Pos(0,0), Pos(0,1), Pos(0,2), Pos(0,3)],
@@ -81,97 +96,159 @@ def initialize(use_input=False, value=None):
 
 
 def new_row():
-    return [Tile.BOUNDS] + ([Tile.AIR] * 7) + [Tile.BOUNDS]
+    return [Tile.AIR] * 7
 
 
 def create_map():
-    cave = [[Tile.BOUNDS] * 9]
-    for i in range(100):
-        rows.append(new_row())
+    cave = [[Tile.FLOOR] * 7]
+    for i in range(10):
+        cave.append(new_row())
     
     return cave
 
 
-def spawn_rock(last_rock, cave_map):
-    pass
+def spawn_rock(last_rock_type, cave_map):
+    """
+    Updates cave_map!!
+
+    Parameters
+    ----------
+    last_rock_type : TYPE
+        DESCRIPTION.
+    cave_map : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    new_rock : TYPE
+        DESCRIPTION.
+    cave_map : TYPE
+        DESCRIPTION.
+
+    """
+    if DEBUG: print(f'******\nspawn_rock last_type={last_rock_type}')
+    
+    new_type = (last_rock_type + 1) % len(ROCK_ORDER)
+    new_tiles = copy.deepcopy(ROCK_TEMPLATES[new_type])
+    
+    for i in range(len(cave_map) - 1, -1, -1):
+        row = cave_map[i]
+        #print(f'{i}th row: {row}')
+        if Tile.ROCK in row or Tile.FLOOR in row:
+            new_pos = Pos(i + 4, 2)
+            
+            if DEBUG: print(f'Spawning new rock at {new_pos}')
+            for tile in new_tiles:
+                tile += new_pos
+           
+            if DEBUG: print(f'Updated tiles: {[str(t) for t in new_tiles]}')
+    
+            
+            # Grow the cave map to fit the new spawn location
+            for r in range(len(cave_map), new_pos.row + 4):
+                cave_map.append(new_row())
+            
+            return Rock(new_type, new_tiles), cave_map
+
+
+def move_rock(rock, move, cave):
+    if DEBUG: print(f'move_rock rock_type={rock.type}, tiles={[str(t) for t in rock.tiles]}, move={move}')
+    next_rock_tiles = [tile + move for tile in rock.tiles]
+    
+    if move == Moves.LEFT or move == Moves.RIGHT:
+        for tile in next_rock_tiles:
+            if tile.col < 0 or tile.col >= CAVE_WIDTH or cave[tile.row][tile.col] == Tile.ROCK:
+                if DEBUG: print(f'move_rock bumped into something at {str(tile)}')
+                # It bumped into something, don't move
+                return rock
+    
+    return Rock(rock.type, next_rock_tiles)
+
+
+def fall_rock(rock, cave):
+    """
+    Mutates cave!
+    """
+    if DEBUG: print(f'fall_rock rock_type={rock.type}, tiles={[str(t) for t in rock.tiles]}')
+    next_rock = move_rock(rock, Moves.DOWN, cave)
+    
+    if DEBUG: print(f'fall_rock next_rock: type={next_rock.type}, tiles={[str(t) for t in next_rock.tiles]}, ')
+    
+    collides = False
+    for tile in next_rock.tiles:
+        if cave[tile.row][tile.col] == Tile.ROCK or cave[tile.row][tile.col] == Tile.FLOOR:
+            collides = True
+            break
+    
+    if collides:
+        # Lock it in place from the previous value
+        for tile in rock.tiles:
+            cave[tile.row][tile.col] = Tile.ROCK
+        return True, rock, cave
+    
+    return False, next_rock, cave
+
 
 
 # TODO I will probably want some way to cut off the bottom of the map
 
     
-def print_map(cave, bounds):
-    for row in reversed(cave):
-        print(''.join(row))
+def print_map(cave, rock=None):
+    if rock:
+        for r in range(len(cave)-1, -1, -1):
+            for c in range(CAVE_WIDTH):
+                is_falling = False
+                for tile in rock.tiles:
+                    if tile.row == r and tile.col == c:
+                        is_falling = True
+                        break
+                if is_falling:
+                    print(Tile.FALLING_ROCK, end='')
+                else:
+                    print(cave[r][c], end='')
+            print()
+                    
+    else:
+        for row in reversed(cave):
+            print(''.join(row))
             
 
-def next_pos(cave, pos):
-    for d in FALL_DIRS:
-        new_pos = Pos(pos.row + d.row, pos.col + d.col)
-        if cave[new_pos.row][new_pos.col] == Tile.AIR:
-            return new_pos
-    return None
-
-def fall_sand(cave, bounds):
-    """
-    
-
-    Parameters
-    ----------
-    cave : TYPE
-        DESCRIPTION.
-    bounds : TYPE
-        DESCRIPTION.
-
-        DESCRIPTION.
-
-    Returns
-    -------
-    None -- Sand falls into abyss
-    Pos -- Sand settles in this position
-
-    """
-    prev_sand_pos = SAND_SOURCE_POS
-    new_sand_pos = next_pos(cave, prev_sand_pos)
-    while new_sand_pos:
-        if new_sand_pos.row > bounds.max.row:
-            # Assume we're spilling into the abyss
-            return None
-        prev_sand_pos = new_sand_pos
-        new_sand_pos = next_pos(cave, new_sand_pos)
-    
-    return prev_sand_pos
-    
 
 def part1(use_input=False, value=None):
-    cave, bounds = lines_to_map(initialize(use_input, value))
+    jet_dirs = initialize(use_input, value)[0]
+    cave = create_map()
     
-    new_sand_count = 0
-    new_sand = fall_sand(cave, bounds)
-    while new_sand:
-        cave[new_sand.row][new_sand.col] = Tile.SAND
-        new_sand_count += 1
+    curr_rock, cave = spawn_rock(-1, cave)
+    curr_jet_idx = 0
+    rocks_stopped = 0
+    
+    jet_fires = True
+    while rocks_stopped < 2022:
+        if jet_fires:
+            jet_dir = CHAR_TO_MOVE[jet_dirs[curr_jet_idx]]
+            curr_rock = move_rock(curr_rock, jet_dir, cave)
+            curr_jet_idx = (curr_jet_idx + 1) % len(jet_dirs)
+            jet_fires = False
+        else:
+            stopped, curr_rock, cave = fall_rock(curr_rock, cave)
+            if stopped:
+                rocks_stopped += 1
+                #print(f'==== After rock {rocks_stopped} ====')
+                if DEBUG: print_map(cave)
+                curr_rock, cave = spawn_rock(curr_rock.type, cave)
+            jet_fires = True
         
-        new_sand = fall_sand(cave, bounds)
+        if DEBUG: print_map(cave, curr_rock)
+
+    print('~~~~~~~~ FINAL SITUATION ~~~~~~')
+    print_map(cave[:100])
     
-    print_map(cave, bounds)
-    return new_sand_count
-    
-    
+    for i in range(len(cave)-1, 0, -1):
+        row = cave[i]
+        if Tile.ROCK in row or Tile.FLOOR in row:
+            print(f'Highest rock is {i}')
+            return i
 
 def part2(use_input=False, value=None):
-    cave, rock_bounds = lines_to_map(initialize(use_input, value))
-    
-    cave[rock_bounds.max.row+2] = defaultdict(lambda: Tile.FLOOR)
-    bounds = Range(rock_bounds.min, Pos(rock_bounds.max.row+2, rock_bounds.max.col))
-    
-    new_sand_count = 0
-    new_sand = fall_sand(cave, bounds)
-    while new_sand != SAND_SOURCE_POS:
-        cave[new_sand.row][new_sand.col] = Tile.SAND
-        new_sand_count += 1
-        
-        new_sand = fall_sand(cave, bounds)
-    
-    print_map(cave, bounds)
-    return new_sand_count + 1
+    jet_dirs = initialize(use_input, value)
     
