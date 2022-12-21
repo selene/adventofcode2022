@@ -16,12 +16,16 @@ import time
 DEBUG = False
 
 
+ROOT = 'root'
+HUMAN = 'humn'
+
 class Op(Enum):
     Equal = '='
     Plus = '+'
     Minus = '-'
     Times = '*'
     Divide = '/'
+    
 
 
 Monkey = namedtuple('Monkey', ['name', 'op', 'val1', 'val2'])
@@ -57,7 +61,6 @@ hmdt: 32""".split('\n')
 def parse_input(lines):
     monkeys = {}
     for line in lines:
-        print(f'Parsing "{line}"')
         parts = line.split(': ')
         name = parts[0]
         op = Op.Equal
@@ -135,10 +138,87 @@ def part1(use_input=False, value=None):
     print(f'root={root_val}')
     return root_val
 
+
+
+def stringify(name, constants, variables):
+    if name in constants:
+        return f'{constants[name].val1}'
     
-            
+    if name == HUMAN:
+        return HUMAN
+    monkey = variables[name]
+    left = stringify(monkey.val1, constants, variables)
+    right = stringify(monkey.val2, constants, variables)
     
+    if HUMAN in left:
+        left = f'({left})'
+    else:
+        #print(f'About to eval "{left}"')
+        left = str(eval(left))
+    
+    if HUMAN in right:
+        right = f'({right})'
+    else:
+        #print(f'About to eval "{right}"')
+        right = str(eval(right))
+    
+    return f'{left} {monkey.op.value} {right}'
 
 
 def part2(use_input=False, value=None):
     monkeys = parse_input(initialize(use_input, value))
+    normal_monkeys = copy.deepcopy(monkeys)
+    del normal_monkeys[ROOT]
+    del normal_monkeys[HUMAN]
+    
+    constant_monkeys = {}
+    variable_monkeys = {}
+    for name in normal_monkeys.keys():
+        try:
+            value, updated_monkeys = evaluate_monkey(name, normal_monkeys)
+        except KeyError:
+            variable_monkeys[name] = updated_monkeys[name]
+        else:
+            constant_monkeys[name] = Monkey(name, Op.Equal, value, None)
+    
+    print('Constant monkeys')
+    print(constant_monkeys)
+    
+    print('Variable monkeys')
+    print(variable_monkeys)
+    
+    left_equation = stringify(monkeys[ROOT].val1, constant_monkeys, variable_monkeys)
+    right_equation = stringify(monkeys[ROOT].val2, constant_monkeys, variable_monkeys)
+    
+    
+    print(f'left: {left_equation}')
+    print(f'right: {right_equation}')
+    
+    # on left
+    # make a binary tree of expressions
+    # starting from the top, apply in reverse?
+    
+    # Or whatever let's just binary search this??
+    
+    right = eval(right_equation)
+    upper = 2 * right
+    lower = 0
+    mid = right
+    
+    while upper - lower > 1:
+        left = eval(left_equation.replace(HUMAN, '{' + HUMAN + '}').format(**{HUMAN: mid}))
+        if left == right:
+            print(f'HUMAN: {mid}')
+            break
+        
+        if left < right:
+            upper = mid - 1
+            mid = math.floor((upper - lower) / 2.0)
+        else:
+            lower = mid + 1
+            mid = lower + math.floor((upper - lower)/ 2.0)
+            
+            
+    
+    
+        
