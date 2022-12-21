@@ -44,6 +44,9 @@ class Pos:
 
     def __str__(self):
         return f'r={self.row},c={self.col}'
+    
+    def __repr__(self):
+        return f'Pos({self.row},{self.col})'
 
 
 class Moves:
@@ -251,4 +254,14 @@ def part1(use_input=False, value=None):
 
 def part2(use_input=False, value=None):
     jet_dirs = initialize(use_input, value)
+    cave = create_map()
+    
+    
+    ##### PLAN
+    # Pick a desired array height
+    # Whenever it reaches 2x that, cut off the bottom half and add to an offset
+    # Update all the functions to take an offset of some kind
+    # OR ELSE just track it at the top level, and only update the falling rock's tiles for the new offset
+    
+    
     
