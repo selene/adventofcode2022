@@ -14,7 +14,7 @@ import sys
 from parse import *
 
 
-DEBUG = True
+DEBUG = False
 
 
 class TileContent:
@@ -164,9 +164,9 @@ def find_intervals(row, sensors, beacons):
     curr_ival = intervals[0]
     for ival in intervals[1:]:
         if(has_overlap(curr_ival, ival)):
-            print(f'Overlapping: {curr_ival}, {ival}')
+            if DEBUG: print(f'Overlapping: {curr_ival}, {ival}')
             curr_ival = merge_intervals(curr_ival, ival)
-            print(f'--Merged: {curr_ival}')
+            if DEBUG: print(f'--Merged: {curr_ival}')
         else:
             merged_intervals.append(curr_ival)
             curr_ival = ival
@@ -201,7 +201,7 @@ def part1(use_input=False, value=None):
     if use_input:
         row = 2000000
     else:
-        row = 11
+        row = 10
     
     known_empty = count_known_empty(row, sensors, beacons)
     print(f'Known empty on row {row}: {known_empty}')
@@ -209,19 +209,35 @@ def part1(use_input=False, value=None):
 
 
 def part2(use_input=False, value=None):
-    sensor_map, sensors, beacons = parse_input(initialize(use_input, value))
+    sensor_map, sensors, beacons, _, _ = parse_input(initialize(use_input, value))
+    
     
     if use_input:
         max_row = 4000000
+        max_col = 4000000
     else:
         max_row = 20
+        max_col = 20
     
     beacon_row = None
     beacon_col = None
     for r in range(max_row+1):
-        intervals = find_intervals(i, sensors, beacons)
+        intervals = find_intervals(r, sensors, beacons)
         
         if len(intervals) > 1:
             beacon_row = r
-            beacon_col = intervals[1].start - intervals[0].end
+            beacon_col = intervals[1].start - 1
+            break
+        if len(intervals) == 1:
+            if intervals[0].start > 0:
+                beacon_row = r
+                beacon_col = 0
+                break
+            if intervals[0].end == max_col:
+                beacon_row = r
+                beacon_col = max_col
     
+    print(f'beacon at r={beacon_row} c={beacon_col}')
+    tuning_frequency = beacon_col * 4000000 + beacon_row
+    print(f'freq = {tuning_frequency}')
+    return tuning_frequency
