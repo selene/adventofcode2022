@@ -14,7 +14,7 @@ import sys
 from parse import *
 
 
-DEBUG = False
+DEBUG = True
 
 
 class TileContent:
@@ -67,11 +67,10 @@ def distance(pos1, pos2):
 
 
 def has_overlap(interval1, interval2):
-    if (interval1.start <= interval2.start and interval2.start <= interval1.end) or \
-        (interval2.start <= interval1.start and interval1.start <= interval2.end):
-        return True
+    if (interval1.end < interval2.start) or (interval2.end < interval1.start):
+        return False
     
-    return False
+    return True
 
 
 def merge_intervals(interval1, interval2):
@@ -107,7 +106,7 @@ Sensor at x=20, y=1: closest beacon is at x=15, y=3""".split('\n')
 def parse_input(lines):
     sensor_map = defaultdict(lambda: defaultdict(lambda:  TileContent.UNKNOWN))
     sensors = []
-    beacons = []
+    beacons = set()
     
     min_col = math.inf
     max_col = -math.inf
@@ -130,7 +129,7 @@ def parse_input(lines):
         dist = distance(s_pos, b_pos)
         sensor = Sensor(s_pos, b_pos, dist)
         sensors.append(sensor)
-        beacons.append(sensor.beacon)
+        beacons.add(sensor.beacon)
         
         sensor_map[s_row][s_col] = TileContent.SENSOR
         sensor_map[b_row][b_col] = TileContent.BEACON
@@ -141,7 +140,7 @@ def parse_input(lines):
     
     
 
-def count_known_empty(row, sensors, beacons):
+def find_intervals(row, sensors, beacons):
     intervals = []
     
     for s in sensors:
@@ -149,33 +148,51 @@ def count_known_empty(row, sensors, beacons):
         if v_dist_from_sensor <= s.dist:
             # This row is in range of the sensor
             dist_in_row = s.dist - v_dist_from_sensor
-            intervals.append(Interval(s.pos.col - dist_in_row, s.pos.col + dist_in_row))
+            intervals.append(Interval(
+                s.pos.col - dist_in_row,
+                s.pos.col + dist_in_row + 1
+            ))
     
     intervals = sorted(intervals, key=lambda interval: interval.start)
+    
+    if DEBUG:
+        print('~~~ INTERVALS ~~~')
+        for i in intervals:
+            print(i)
     
     merged_intervals = []
     curr_ival = intervals[0]
     for ival in intervals[1:]:
         if(has_overlap(curr_ival, ival)):
+            print(f'Overlapping: {curr_ival}, {ival}')
             curr_ival = merge_intervals(curr_ival, ival)
+            print(f'--Merged: {curr_ival}')
         else:
             merged_intervals.append(curr_ival)
             curr_ival = ival
     
     merged_intervals.append(curr_ival)
     
-    print('~~~ MERGED ~~~')
-    for i in merged_intervals:
-        print(i)
-    
-    return sum([
+    if DEBUG:
+        print('~~~ MERGED ~~~')
+        for i in merged_intervals:
+            print(i)
+
+    return merged_intervals
+
+
+def count_known_empty(row, sensors, beacons):
+    merged_intervals = find_intervals(row, sensors, beacons)
+    sum_including_beacons = sum([
         ival.end - ival.start
         for ival in merged_intervals
     ])
     
-                
-            
-
+    beacons_in_row = sum([
+        1 for b in beacons if b.row == row
+    ])
+    
+    return sum_including_beacons - beacons_in_row
 
 
 def part1(use_input=False, value=None):
@@ -184,7 +201,7 @@ def part1(use_input=False, value=None):
     if use_input:
         row = 2000000
     else:
-        row = 10
+        row = 11
     
     known_empty = count_known_empty(row, sensors, beacons)
     print(f'Known empty on row {row}: {known_empty}')
@@ -194,4 +211,17 @@ def part1(use_input=False, value=None):
 def part2(use_input=False, value=None):
     sensor_map, sensors, beacons = parse_input(initialize(use_input, value))
     
+    if use_input:
+        max_row = 4000000
+    else:
+        max_row = 20
+    
+    beacon_row = None
+    beacon_col = None
+    for r in range(max_row+1):
+        intervals = find_intervals(i, sensors, beacons)
+        
+        if len(intervals) > 1:
+            beacon_row = r
+            beacon_col = intervals[1].start - intervals[0].end
     
