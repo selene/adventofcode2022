@@ -36,6 +36,10 @@ Pos = namedtuple('Pos', ['row', 'col'])
 
 Sensor = namedtuple('Sensor', ['pos', 'beacon', 'dist'])
 
+# These are inclusive of both ends
+# TODO figure out math/off-by-ones to make it not include end
+Interval = namedtuple('Interval', ['start', 'end'])
+
 
 DIRECTIONS = [
     Pos(0, 1),  # right >
@@ -60,6 +64,18 @@ Move = namedtuple('Move', ['type', 'val'])
 
 def distance(pos1, pos2):
     return abs(pos1.row - pos2.row) + abs(pos1.col - pos2.col)
+
+
+def has_overlap(interval1, interval2):
+    if (interval1.start <= interval2.start and interval2.start <= interval1.end) or \
+        (interval2.start <= interval1.start and interval1.start <= interval2.end):
+        return True
+    
+    return False
+
+
+def merge_intervals(interval1, interval2):
+    return Interval(min(interval1.start, interval2.start), max(interval1.end, interval2.end))
 
 
 def initialize(use_input=False, value=None):
@@ -125,35 +141,38 @@ def parse_input(lines):
     
     
 
-def count_known_empty(row, sensors, beacons, min_col, max_col):
-    known_min_col = min_col
-    known_max_col = max_col
-    known_empty = 0
-    for c in range(min_col, max_col+1):
-        is_empty = False
-        for pos, beacon, dist in sensors:
-            dist_from_sensor = distance(Pos(row, c), pos)
-            if dist_from_sensor <= dist:
-                remaining_dist = dist_from_sensor - dist
-                if c == min_col:
-                    # We are at the left edge, see how much farther left to go
-                    new_min_col = min_col - remaining_dist
-                    if new_min_col < known_min_col:
-                        # Need to add more left
-                        known_empty += known_min_col - new_min_col
-                        known_min_col = new_min_col
-                elif c == max_col:
-                    # We are at the right edge, see how much farther right to go
-                    new_max_col = max_col + remaining_dist
-                    if new_max_col > known_max_col:
-                        # Need to add more right
-                        known_empty += new_max_col - known_max_col
-                        known_max_col = new_max_col
-                else:
-                    is_empty = True
-        if is_empty: known_empty += 1
+def count_known_empty(row, sensors, beacons):
+    intervals = []
     
-    return known_empty
+    for s in sensors:
+        v_dist_from_sensor = abs(s.pos.row - row)
+        if v_dist_from_sensor <= s.dist:
+            # This row is in range of the sensor
+            dist_in_row = s.dist - v_dist_from_sensor
+            intervals.append(Interval(s.pos.col - dist_in_row, s.pos.col + dist_in_row))
+    
+    intervals = sorted(intervals, key=lambda interval: interval.start)
+    
+    merged_intervals = []
+    curr_ival = intervals[0]
+    for ival in intervals[1:]:
+        if(has_overlap(curr_ival, ival)):
+            curr_ival = merge_intervals(curr_ival, ival)
+        else:
+            merged_intervals.append(curr_ival)
+            curr_ival = ival
+    
+    merged_intervals.append(curr_ival)
+    
+    print('~~~ MERGED ~~~')
+    for i in merged_intervals:
+        print(i)
+    
+    return sum([
+        ival.end - ival.start
+        for ival in merged_intervals
+    ])
+    
                 
             
 
@@ -167,7 +186,7 @@ def part1(use_input=False, value=None):
     else:
         row = 10
     
-    known_empty = count_known_empty(row, sensors, beacons, min_pos.col, max_pos.col)
+    known_empty = count_known_empty(row, sensors, beacons)
     print(f'Known empty on row {row}: {known_empty}')
     return known_empty
 
